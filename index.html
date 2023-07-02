@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>img</title>
+
+    <link rel="stylesheet" href="https://wondaero.github.io/assets/css/normalize.css" />
+
+    <style>
+        *{box-sizing: border-box;}
+        body{background: #000;}
+        .canvas-wrapper{
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .radio-form input{
+            display: none;
+        }
+        .radio-form strong{
+            padding: 10px;
+            border-radius: 5px;
+            display: inline-block;
+            vertical-align: top;
+            color: #999;
+            background: #777;
+            cursor: pointer;
+        }
+        .radio-form input:checked + strong{
+            background: #fff;
+            color: #000;
+            box-shadow: 0 0 5px rgba(0, 0, 0, .8);
+        }
+
+        .toggle-form input{
+            display: none;
+        }
+        .toggle-form span{
+            display: inline-flex;
+            vertical-align: top;
+            width: 140px;
+            background: red;
+            align-items: center;
+            color: #fff;
+        }
+        .toggle-form strong{
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 15px;
+            background: green;
+            height: 30px;
+            width: 70px;
+        }
+
+        .hamburger{
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 50px;
+            height: 50px;
+            padding: 14px 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 1;
+            cursor: pointer;
+        }
+
+        .hamburger span{
+            width: 100%;
+            height: 4px;
+            background: #fff;
+            border-radius: 2px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, .5);
+        }
+
+        .hamburger.close{
+            background: #f00;
+            border-radius: 50%;
+            justify-content: center;
+            transform: scale(.5)
+        }
+        .hamburger.close span:nth-child(1),
+        .hamburger.close span:nth-child(3){
+            display: none;
+        }
+
+
+
+        .menu{
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 200px;
+            height: 100vh;
+            background: #fff;
+            transition: right .5s;
+            box-shadow: 0 0 10px rgba(255, 255, 255, .9);
+            padding-top: 50px;
+        }
+        .menu.hidden{
+            right: -250px;
+        }
+        .menu ul{
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow-y: auto;
+            list-style: none;
+            padding: 5px;
+        }
+        .menu ul li{
+            border-bottom: 1px solid rgba(0, 0, 0, .2);
+            padding: 10px 5px;
+        }
+        .menu ul li .title{
+            margin-bottom: 10px;
+        }
+
+        .upload-title{
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .file-form input{
+            display: none;
+        }
+        .file-form strong{
+            display: inline-block;
+            vertical-align: top;
+            border-radius: 5px;
+            padding: 5px 10px;
+            background: #ddd;
+        }
+
+        .file-nm{
+            height: 0;
+        }
+        .file-nm input{
+            width: 100%;
+            border: 0;
+            height: 0;
+            outline: 0;
+            transition: height .5s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+        }
+        .file-nm.has-file{
+            height: 30px;
+        }
+        .file-nm.has-file input{
+            height: 30px;
+            border-bottom: 1px dashed #000;
+        }
+
+            
+    </style>
+</head>
+<body>
+    <div class="canvas-wrapper">
+        <canvas id="canvas"></canvas>
+    </div>
+    <div class="hamburger" id="hamburger" onclick="menuToggle()">
+        <span></span>
+        <span></span>
+        <span></span>
+    </div>
+    <aside id="menu" class="menu hidden">
+        <ul>
+            <li>
+                <div class="title upload-title">
+                    <div>업로드</div>
+                    <label class="file-form">
+                        <input type="file" onchange="uploadFile(this);" />
+                        <strong>UPLOAD</strong>
+                    </label>
+                </div>
+                <div class="contents">
+                    <div id="fileNm" class="file-nm">
+                        <input type="text" readonly />
+                    </div>
+                </div>
+            </li>
+            <li>
+                <div class="title">효과</div>
+                <div class="contents">
+                    <label class="radio-form">
+                        <input type="radio" name="effect" value="1" oninput="changeEffect(this);" checked />
+                        <strong>EFECT1</strong>
+                    </label>
+                    <label class="radio-form">
+                        <input type="radio" name="effect" value="2" oninput="changeEffect();">
+                        <strong>EFECT2</strong>
+                    </label>
+                </div>
+            </li>
+        </ul>
+
+    </aside>
+    <script>
+        const canvas = document.querySelector('canvas');
+
+        function menuToggle(bool){
+            const menu = document.querySelector('aside');
+            const btn = document.querySelector('#hamburger');
+
+            if(bool === undefined){
+                menu.classList.toggle('hidden');
+                btn.classList.toggle('close');
+            }else{
+                menu.classList[bool ? 'remove' : 'add']('hidden');
+                btn.classList[bool ? 'remove' : 'add']('close');
+            }
+        }
+
+        function uploadFile(e){
+            const hasFile = e.files && e.files[0];
+
+            const fileNm = document.querySelector('#fileNm');
+            const fileNmInput = fileNm.querySelector('input');
+            fileNmInput.value = hasFile ? e.value : '';
+            fileNm.classList[hasFile ? 'add' : 'remove']('has-file');
+
+            effectImg.ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if(hasFile){
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    effectImg.drawImg(e.target.result, effectImg.effect);
+                }
+                
+                reader.readAsDataURL(e.files[0]);
+            }
+        }
+
+
+
+        canvas.width = 240;
+        canvas.height = 240;
+
+        class Particle {
+            constructor(img, x, y, color){
+
+                this.img = img;
+
+                if(this.img.effectVal === 1){
+                    this.x = this.img.width * Math.random();
+                    this.y = this.img.height * Math.random();
+                    this.originX = x;
+                    this.originY = y;
+                    this.ease = Math.random() * .15;
+
+                    this.dx = this.originX - this.x > 0 ? 1 : -1;
+                    this.dy = this.originY - this.y > 0 ? 1 : -1;
+
+                }else if(this.img.effectVal === 2){
+                    this.x = x;
+                    this.y = y;
+                    this.originX = this.img.width * Math.random();
+                    this.originY = this.img.height * Math.random();
+                    this.ease = Math.random() * .00005;
+                }
+
+                this.dx = this.originX - this.x > 0 ? 1 : -1;
+                this.dy = this.originY - this.y > 0 ? 1 : -1;
+
+                this.size = this.img.gap;
+                this.color = color;
+            }
+            
+            draw() {
+                this.img.ctx.beginPath();
+                this.img.ctx.fillStyle = this.color;
+                this.img.ctx.strokeStyle = this.color;
+
+                //네모
+                this.img.ctx.fillRect(this.x, this.y, this.size, this.size);
+
+                //동그라미
+                // this.img.ctx.arc(this.x, this.y, this.size * .5, 0, 2*Math.PI);
+
+                // this.img.ctx.fill();
+                // this.img.ctx.stroke();
+
+            }
+
+            update()  {
+                this.x += (this.originX - this.x) * this.ease;
+                if(this.x * this.dx > this.originX * this.dx) this.x = this.originX;
+                this.y += (this.originY - this.y) * this.ease;
+                if(this.y * this.dy > this.originY * this.dy) this.y = this.originY;
+            }
+        }
+
+
+        const effectImg = new EffectImg({
+            canvasTarget: 'canvas',
+        });
+
+        function EffectImg (param) {
+            const t = this;
+            t.raf;
+            const particles = [];
+            t.s;
+
+            t.ctx;
+            t.width = 0;
+            t.height = 0;
+
+            t.gap = 5;
+
+            t.effectVal = 1;
+
+            t.drawImg = (src, cb) => {
+
+                const img = new Image();
+                img.src = src;
+
+
+                img.onload = () => {
+                    const w = img.width;
+                    const h = img.height;
+
+                    const isW = w > h;
+
+                    if(isW){
+                        // ctx.drawImage(img, 10, (t.height / 2) - ((t.width - 20) * h / w * .5) - 10, (t.width - 20), (t.width - 20) * h / w);
+                        t.ctx.drawImage(img, 0, 0, (t.width - 0), (t.width - 0) * h / w);
+                    }else{
+                        console.log(w / h);
+                        // ctx.drawImage(img, (t.width / 2) - ((t.height - 20) * w / h * .5) - 10, 10, (t.height - 20) * w / h, (t.height - 20));
+                        t.ctx.drawImage(img, 0, 0, (t.height - 0) * w / h, (t.height - 0));
+                    }
+
+                    if(cb && typeof cb === 'function') cb();
+                }
+
+            }
+
+            t.effect = () => {
+                const pixels = t.ctx.getImageData(0, 0, t.width, t.height).data;
+
+                particles.length = 0;
+
+                for(let y = 0; y < t.height; y+= t.gap){
+                    for(let x = 0; x < t.width; x+= t.gap){
+                        const idx = (y * t.width + x) * 4;
+
+                        const r = pixels[idx];
+                        const g = pixels[idx + 1];
+                        const b = pixels[idx + 2];
+                        const a = pixels[idx + 3];
+
+                        if(a > 0) particles.push(new Particle(t, x, y, `rgb(${r}, ${g}, ${b})`));
+                    }
+                }
+
+
+                t.ctx.clearRect(0, 0, t.width, t.height);
+                window.cancelAnimationFrame(t.raf);
+
+                t.animation();
+            }
+
+            t.render = () => {
+                t.ctx.clearRect(0, 0, t.width, t.height);
+                
+                particles.forEach(function(particle){
+                    particle.update();
+                    particle.draw();
+                })
+            }
+
+            t.animation = () => {
+                t.render();
+
+                t.raf = window.requestAnimationFrame(t.animation);
+            }
+            
+
+            t.resize = () => {
+                const w = window.innerWidth;
+                const h = window.innerHeight;
+
+                if(w !== t.width){
+                    t.width = w;
+                    t.target.width = t.width;
+                }
+                if(h !== t.height){
+                    t.height = h;
+                    t.target.height = t.height;
+                }
+            }
+
+
+            t.changeEffect = (val) => {
+                t.effectVal = val;
+            }
+
+
+            function construct () {
+                t.target = document.querySelector(param.canvasTarget);
+                t.ctx = t.target.getContext('2d',  {willReadFrequently: true});
+                t.canvasWidth = t.target.width;
+                t.canvasHeight = t.target.height;
+                t.resize();
+            }
+
+            construct();
+            
+        }
+
+
+        function changeEffect () {
+            effectImg.changeEffect(+document.querySelector('input[name="effect"]:checked').value);
+        }
+
+
+        window.onresize = effectImg.resize;
+
+        
+    </script>
+</body>
+</html>
